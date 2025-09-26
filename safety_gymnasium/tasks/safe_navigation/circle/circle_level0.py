@@ -36,7 +36,7 @@ class CircleLevel0(BaseTask):
         # Reward for circle goal (complicated formula depending on pos and vel)
         self.reward_factor: float = 1e-1
 
-        self._add_geoms(Circle())
+        self._add_geoms(Circle(is_lidar_observed=False))
 
     def calculate_reward(self):
         """The agent should loop around the boundary of circle."""

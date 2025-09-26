@@ -24,4 +24,4 @@ class CircleLevel1(CircleLevel0):
     def __init__(self, config) -> None:
         super().__init__(config=config)
 
-        self._add_geoms(Sigwalls(num=2, locate_factor=1.125, is_constrained=True))
+        self._add_geoms(Sigwalls(num=2, locate_factor=1.125, is_constrained=True, is_lidar_observed=True))  # pylint: disable=no-member
