@@ -138,10 +138,12 @@ class SafetyCircleMargin(gym.Wrapper):
         return obs, g, terminated, truncated, info
 
     def reset(self, **kwargs):
-        obs, info = self.env.reset(**kwargs)
-        # optional: nudge initial states toward safe set by skipping unsafe inits
-        # (Circle already spawns inside; we keep defaults.)
-        return obs, info
+        # rejection sampling, outside failure set
+        while True:
+            obs, info = self.env.reset(**kwargs)
+            g = self._margin_from_obs(obs)
+            if g >= 0.0:
+                return obs, info
 
     def render(self, **kwargs):
         return self.env.render(**kwargs)
