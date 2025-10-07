@@ -15,7 +15,7 @@
 """Circle level2."""
 
 from safety_gymnasium.tasks.safe_navigation.circle.circle_level1 import CircleLevel1
-
+# from safety_gymnasium.assets.geoms import Pillars
 
 class CircleLevel2(CircleLevel1):
     """An agent want to loop around the boundary of circle, while avoid going outside the stricter boundaries."""
@@ -23,4 +23,9 @@ class CircleLevel2(CircleLevel1):
     def __init__(self, config) -> None:
         super().__init__(config=config)
 
+        # self.agent.placements = [(-0.6, -0.6, 0.6, 0.6)]
+        # self.agent.keepout = 0.1
+
         self.sigwalls.num = 4  # pylint: disable=no-member
+        # placements: list of [xmin, ymin, xmax, ymax] rectangles
+        # self._add_geoms(Pillars(num=1, is_constrained=True, placements=[[-1.25, -1.25, 1.25, 1.25]]))

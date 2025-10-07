@@ -17,14 +17,20 @@
 import argparse
 
 import safety_gymnasium
+from safety_gymnasium.safety_envs.terminate_on_collision import TerminateOnCollisionWrapper
 
 
 def run_random(env_name):
     """Random run."""
     env = safety_gymnasium.make(env_name, render_mode='human')
+    env = TerminateOnCollisionWrapper(env)
     obs, info = env.reset()  # pylint: disable=unused-variable
     # Use below to specify seed.
     # obs, _ = env.reset(seed=0)
+
+    for k, v in env.unwrapped.obs_space_dict.items():
+        print(f'Observation key: {k} \t Shape: {v.shape} \t Low: {v.low} \t High: {v.high}')
+
     terminated, truncated = False, False
     ep_ret, ep_cost = 0, 0
     while True:
@@ -44,6 +50,6 @@ def run_random(env_name):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--env', default='SafetyPointFormulaOne2Debug-v0')
+    parser.add_argument('--env', default='SafetyCarCircle2-v0')
     args = parser.parse_args()
     run_random(args.env)

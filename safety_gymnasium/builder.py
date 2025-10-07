@@ -177,19 +177,33 @@ class Builder(gymnasium.Env, gymnasium.utils.EzPickle):
         self.truncated = False
         self.steps = 0  # Count of steps taken in this episode
 
-        self.task.reset()
-        self.task.specific_reset()
-        self.task.update_world()  # refresh specific settings
-        self.task.agent.reset()
+        for i in range(100):
+            self.task.reset()
+            self.task.specific_reset()
+            self.task.update_world()  # refresh specific settings
+            self.task.agent.reset()
 
-        cost = self._cost()
-        assert cost['cost_sum'] == 0, f'World has starting cost! {cost}'
+            cost = self._cost()
+            # assert cost['cost_sum'] == 0, f'World has starting cost! {cost}'
+
+            if cost['cost_sum'] == 0:
+                break
+            else:
+                print('World has starting cost! Resample')
+
         # Reset stateful parts of the environment
         self.first_reset = False  # Built our first world successfully
 
         # Return an observation
         return (self.task.obs(), info)
-
+    
+    def soft_reset(self, **kwargs):
+        self.terminated = False
+        self.truncated = False
+        self.steps = 0  # Count of steps taken in this episode
+        self.first_reset = False
+        self.cost = None
+        
     def step(self, action: np.ndarray) -> tuple[np.ndarray, float, float, bool, bool, dict]:
         """Take a step and return observation, reward, cost, terminated, truncated, info."""
         assert not self.done, 'Environment must be reset before stepping.'

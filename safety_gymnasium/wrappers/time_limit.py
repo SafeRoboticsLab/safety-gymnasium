@@ -16,7 +16,7 @@
 
 
 from gymnasium.wrappers.time_limit import TimeLimit
-
+from gymnasium import logger
 
 class SafeTimeLimit(TimeLimit):
     """This wrapper will issue a `truncated` signal if a maximum number of timesteps is exceeded.
@@ -55,3 +55,15 @@ class SafeTimeLimit(TimeLimit):
                 truncated = True
 
         return observation, reward, cost, terminated, truncated, info
+    
+    def soft_reset(self, **kwargs):
+        """A soft reset that does not reset the environment state."""
+        if hasattr(self.env, 'soft_reset'):
+            self._elapsed_steps = 0
+            return self.env.soft_reset(**kwargs)
+        else:
+            logger.warn(
+                'The environment does not support soft reset. '
+                'Falling back to hard reset.',
+            )
+            return self.reset(**kwargs)

@@ -18,7 +18,7 @@ from gymnasium.core import ActType
 from gymnasium.wrappers.env_checker import PassiveEnvChecker
 
 from safety_gymnasium.utils.passive_env_checker import env_step_passive_checker
-
+from gymnasium import logger
 
 class SafePassiveEnvChecker(PassiveEnvChecker):
     """Passive environment checker.
@@ -34,3 +34,14 @@ class SafePassiveEnvChecker(PassiveEnvChecker):
             return env_step_passive_checker(self.env, action)
 
         return self.env.step(action)
+    
+    def soft_reset(self, **kwargs):
+        """A soft reset that does not reset the environment state."""
+        if hasattr(self.env, 'soft_reset'):
+            return self.env.soft_reset(**kwargs)
+        else:
+            logger.warn(
+                'The environment does not support soft reset. '
+                'Falling back to hard reset.',
+            )
+            return self.reset(**kwargs)

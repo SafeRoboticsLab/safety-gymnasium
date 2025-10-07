@@ -33,6 +33,17 @@ class SafetyGymnasium2Gymnasium(gymnasium.Wrapper):
         info['cost'] = cost
         return obs, reward, terminated, truncated, info
 
+    def soft_reset(self, **kwargs):
+        """A soft reset that does not reset the environment state."""
+        if hasattr(self.env, 'soft_reset'):
+            return self.env.soft_reset(**kwargs)
+        else:
+            logger.warn(
+                'The environment does not support soft reset. '
+                'Falling back to hard reset.',
+            )
+            return self.reset(**kwargs)
+
 
 class Gymnasium2SafetyGymnasium(gymnasium.Wrapper):
     """A class that converts a Gymnasium environment to a Safety-Gymnasium environment."""

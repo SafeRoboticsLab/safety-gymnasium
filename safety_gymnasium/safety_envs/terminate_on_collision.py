@@ -1,5 +1,5 @@
 import gymnasium as gym
-
+from gymnasium import logger
 
 class TerminateOnCollisionWrapper(gym.Wrapper):
     """Wrapper that terminates episodes when agent collides with walls.
@@ -26,13 +26,26 @@ class TerminateOnCollisionWrapper(gym.Wrapper):
         """Reset the environment and collision flag."""
         self._collision_occurred = False
         return self.env.reset(**kwargs)
+
+    def soft_reset(self, **kwargs):
+        """A soft reset that does not reset the environment state."""
+        if hasattr(self.env, 'soft_reset'):
+            self._collision_occurred = False
+            return self.env.soft_reset(**kwargs)
+        else:
+            logger.warn(
+                'The environment does not support soft reset. '
+                'Falling back to hard reset.',
+            )
+            return self.reset(**kwargs)
         
     def step(self, action):
         """Step the environment and check for collisions."""
         obs, reward, cost, terminated, truncated, info = self.env.step(action)
         
         # Check for wall collision
-        collision_cost = info.get('cost_out_of_boundary', 0.0)
+        # collision_cost = info.get('cost_out_of_boundary', 0.0)
+        collision_cost = info.get('cost_sum', 0.0)
         if collision_cost > 0:
             self._collision_occurred = True
             terminated = True

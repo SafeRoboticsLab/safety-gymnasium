@@ -22,6 +22,7 @@ class SafetyGoalMargin(gym.Wrapper):
         # Initialize LiDAR slices - will be computed on first use
         self._hazards_lidar_slice = None
         self._vases_lidar_slice = None
+        self._sigwalls_lidar_slice = None
 
     @property
     def render_mode(self):
@@ -35,6 +36,7 @@ class SafetyGoalMargin(gym.Wrapper):
         
         hazards_found = False
         vases_found = False
+        sigwalls_found = False
         
         for name, space in d.spaces.items() if hasattr(d, "spaces") else d.items():
             size = int(np.prod(space.shape))
@@ -45,6 +47,9 @@ class SafetyGoalMargin(gym.Wrapper):
             elif name == "vases_lidar":
                 self._vases_lidar_slice = slice(start, start + size)
                 vases_found = True
+            elif name == "sigwalls_lidar":
+                self._sigwalls_lidar_slice = slice(start, start + size)
+                sigwalls_found = True
                 
             start += size
         
@@ -52,10 +57,12 @@ class SafetyGoalMargin(gym.Wrapper):
             raise RuntimeError("hazards_lidar not found in obs_space_dict.")
         if not vases_found:
             raise RuntimeError("vases_lidar not found in obs_space_dict.")
+        if not sigwalls_found:
+            raise RuntimeError("sigwalls_lidar not found in obs_space_dict.")
 
     def _margin_from_obs(self, obs: np.ndarray) -> float:
         """
-        Compute safety margin using LiDAR observations for hazards and vases.
+        Compute safety margin using LiDAR observations for hazards, vases, and sigwalls.
         g(s) = min_distance_to_safety_critical_objects - safety_clearance
         
         LiDAR values are in [0,1] where:
@@ -63,21 +70,23 @@ class SafetyGoalMargin(gym.Wrapper):
         - 1 means object is very close
         - We convert to distances: distance = (1 - lidar_value) * max_range
         """
-        if self._hazards_lidar_slice is None or self._vases_lidar_slice is None:
+        if self._hazards_lidar_slice is None or self._vases_lidar_slice is None or self._sigwalls_lidar_slice is None:
             self._compute_lidar_slices()
         
-        # Extract LiDAR readings for hazards and vases
+        # Extract LiDAR readings for hazards, vases, and sigwalls
         hazards_beams = obs[self._hazards_lidar_slice]  # shape (16,), values in [0,1]
         vases_beams = obs[self._vases_lidar_slice]      # shape (16,), values in [0,1]
-        
+        sigwalls_beams = obs[self._sigwalls_lidar_slice]  # shape (16,), values in [0,1]
+
         # Convert LiDAR closeness values to actual distances
         # lidar=0 (no object) -> dist=max_range
         # lidar=1 (very close) -> dist=0
         hazards_dists = (1.0 - hazards_beams) * self.lidar_max_range
         vases_dists = (1.0 - vases_beams) * self.lidar_max_range
-        
-        # Find minimum distance to any safety-critical object (hazards or vases)
-        all_safety_dists = np.concatenate([hazards_dists, vases_dists])
+        sigwalls_dists = (1.0 - sigwalls_beams) * self.lidar_max_range
+
+        # Find minimum distance to any safety-critical object (hazards, vases, or sigwalls)
+        all_safety_dists = np.concatenate([hazards_dists, vases_dists, sigwalls_dists])
         min_safety_distance = float(np.min(all_safety_dists))
         
         # Compute safety margin

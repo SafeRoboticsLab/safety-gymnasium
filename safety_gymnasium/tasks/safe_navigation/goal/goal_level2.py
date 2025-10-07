@@ -14,6 +14,7 @@
 # ==============================================================================
 """Goal level 2."""
 
+from safety_gymnasium.assets.geoms import Sigwalls
 from safety_gymnasium.tasks.safe_navigation.goal.goal_level1 import GoalLevel1
 
 
@@ -29,3 +30,5 @@ class GoalLevel2(GoalLevel1):
         self.hazards.num = 10
         self.vases.num = 10
         self.vases.is_constrained = True
+
+        self._add_geoms(Sigwalls(num=4, locate_factor=2.25, is_constrained=True, is_lidar_observed=True))  # pylint: disable=no-member

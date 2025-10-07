@@ -18,37 +18,40 @@ class SafetyCircleMargin(gym.Wrapper):
         
         self._render_mode = getattr(env, 'render_mode', None) or getattr(env, '_render_mode', None)
 
+        self._lidar_slice = None
+        self._lidar_max_range = 6.0  # Safety-Gymnasium default for circle environments
+
     @property
     def render_mode(self):
         """Expose render_mode attribute for stable-baselines3 compatibility."""
         return self._render_mode
     
-    # def _compute_lidar_slice(self):
-    #     d = self.env.obs_space_dict  # Dict(name -> Box)
-    #     start = 0
-    #     for name, space in d.spaces.items() if hasattr(d, "spaces") else d.items():
-    #         size = int(np.prod(space.shape))
-    #         if name == "sigwalls_lidar":
-    #             self._lidar_slice = slice(start, start + size)
-    #             return
-    #         start += size
-    #     raise RuntimeError("sigwalls_lidar not found in obs_space_dict.")
+    def _compute_lidar_slice(self):
+        d = self.env.obs_space_dict  # Dict(name -> Box)
+        start = 0
+        for name, space in d.spaces.items() if hasattr(d, "spaces") else d.items():
+            size = int(np.prod(space.shape))
+            if name == "pillars_lidar":
+                self._lidar_slice = slice(start, start + size)
+                return
+            start += size
+        raise RuntimeError("pillars_lidar not found in obs_space_dict.")
 
-    # def _margin_from_obs(self, obs: np.ndarray) -> float:
-    #     if self._lidar_slice is None:
-    #         self._compute_lidar_slice()
-    #     beams = obs[self._lidar_slice]              # shape (16,), values in [0,1]
-    #     # Convert closeness values to actual distances
-    #     # beams=0 (no object) -> dist=6.0, beams=0.1 (far) -> dist=5.4, beams=0.9 (close) -> dist=0.6
-    #     dists = (1.0 - beams) * self._lidar_max_range
-    #     g = float(np.min(dists) - self.safety_clearance)
-    #     return g
-
-    def _margin_from_obs(self, obs: np.ndarray) -> float:
+    def _margin_from_obs(self, obs: np.ndarray, use_lidar=False) -> float:
         """
         Compute safety margin using absolute positions instead of noisy lidar.
         g(s) = min_distance_to_sigwalls - safety_clearance
         """
+        if use_lidar:
+            # LiDAR distance to pillars
+            if self._lidar_slice is None:
+                self._compute_lidar_slice()
+            
+            beams = obs[self._lidar_slice]              # shape (16,), values in [0,1]
+            # Convert closeness values to actual distances
+            # beams=0 (no object) -> dist=6.0, beams=0.1 (far) -> dist=5.4, beams=0.9 (close) -> dist=0.6
+            pillar_dists = (1.0 - beams) * self._lidar_max_range
+            
         # Get robot's absolute position
         robot_pos = self.env.unwrapped.task.agent.pos[:2]  # [x, y] position
         
@@ -66,7 +69,7 @@ class SafetyCircleMargin(gym.Wrapper):
         wall_positions = sigwalls.pos
         
         # Calculate minimum distance to any wall
-        min_distance = float('inf')
+        min_distance_sigwall = float('inf')
         
         for wall_pos in wall_positions:
             wall_xy = wall_pos[:2]  # Extract x, y coordinates
@@ -110,11 +113,18 @@ class SafetyCircleMargin(gym.Wrapper):
                     wall_x_edge = np.sign(robot_pos[0]) * wall_size
                     distance_to_wall = np.sqrt((robot_pos[0] - wall_x_edge)**2 + 
                                              (robot_pos[1] - wall_y)**2)
-            
-            min_distance = min(min_distance, distance_to_wall)
+
+            min_distance_sigwall = min(min_distance_sigwall, distance_to_wall)
         
         # Compute margin: distance to closest wall minus safety clearance
-        g = float(min_distance - self.safety_clearance)
+        if use_lidar:
+            assert pillar_dists is not None, raise RuntimeError("pillar_dists should be computed when use_lidar is True")
+            g = min(
+                float(min_distance_sigwall - self.safety_clearance),
+                float(np.min(pillar_dists) - self.safety_clearance)
+            )
+        else:
+            g = float(min_distance_sigwall - self.safety_clearance)
         return g
 
     def step(self, action):
