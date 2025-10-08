@@ -32,7 +32,8 @@ class GoalLevel1(GoalLevel0):
 
         self.placements_conf.extents = [-1.125, -1.125, 1.125, 1.125]
 
-        self._add_geoms(Pillars(num=5, keepout=0.1, locations=[(0, 0), (-1, -1), (-0.8, 0.6), (0.9, -1.1), (0.8, 0.9)]))  # pylint: disable=no-member
+        # self._add_geoms(Pillars(num=5, keepout=0.1, locations=[(0, 0), (-1, -1), (-0.8, 0.6), (0.9, -1.1), (0.8, 0.9)]))  # pylint: disable=no-member
+        self._add_geoms(Pillars(num=4, keepout=0.1, locations=[(-1, -1), (-0.8, 0.6), (0.9, -1.1), (0.8, 0.9)]))  # pylint: disable=no-member
         # self._add_free_geoms(Vases(num=1, is_constrained=True))
 
         self._add_geoms(Sigwalls(num=4, locate_factor=1.5, is_constrained=True, is_lidar_observed=True))  # pylint: disable=no-member
