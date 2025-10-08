@@ -50,6 +50,6 @@ def run_random(env_name):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--env', default='SafetyCarCircle2-v0')
+    parser.add_argument('--env', default='SafetyCarGoal1-v0')
     args = parser.parse_args()
     run_random(args.env)

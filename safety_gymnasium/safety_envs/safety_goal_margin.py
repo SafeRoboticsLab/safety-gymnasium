@@ -20,8 +20,9 @@ class SafetyGoalMargin(gym.Wrapper):
         self._render_mode = getattr(env, 'render_mode', None) or getattr(env, '_render_mode', None)
         
         # Initialize LiDAR slices - will be computed on first use
-        self._hazards_lidar_slice = None
-        self._vases_lidar_slice = None
+        # self._hazards_lidar_slice = None
+        # self._vases_lidar_slice = None
+        self._pillars_lidar_slice = None
         self._sigwalls_lidar_slice = None
 
     @property
@@ -34,10 +35,11 @@ class SafetyGoalMargin(gym.Wrapper):
         d = self.env.obs_space_dict  # Dict(name -> Box)
         start = 0
         
-        hazards_found = False
-        vases_found = False
+        # hazards_found = False
+        # vases_found = False
         sigwalls_found = False
-        
+        pillars_found = False
+
         for name, space in d.spaces.items() if hasattr(d, "spaces") else d.items():
             size = int(np.prod(space.shape))
             
@@ -50,15 +52,20 @@ class SafetyGoalMargin(gym.Wrapper):
             elif name == "sigwalls_lidar":
                 self._sigwalls_lidar_slice = slice(start, start + size)
                 sigwalls_found = True
+            elif name == "pillars_lidar":
+                self._pillars_lidar_slice = slice(start, start + size)
+                pillars_found = True
                 
             start += size
         
-        if not hazards_found:
-            raise RuntimeError("hazards_lidar not found in obs_space_dict.")
-        if not vases_found:
-            raise RuntimeError("vases_lidar not found in obs_space_dict.")
+        # if not hazards_found:
+        #     raise RuntimeError("hazards_lidar not found in obs_space_dict.")
+        # if not vases_found:
+        #     raise RuntimeError("vases_lidar not found in obs_space_dict.")
         if not sigwalls_found:
             raise RuntimeError("sigwalls_lidar not found in obs_space_dict.")
+        if not pillars_found:
+            raise RuntimeError("pillars_lidar not found in obs_space_dict.")
 
     def _margin_from_obs(self, obs: np.ndarray) -> float:
         """
@@ -70,23 +77,26 @@ class SafetyGoalMargin(gym.Wrapper):
         - 1 means object is very close
         - We convert to distances: distance = (1 - lidar_value) * max_range
         """
-        if self._hazards_lidar_slice is None or self._vases_lidar_slice is None or self._sigwalls_lidar_slice is None:
+        # if self._hazards_lidar_slice is None or self._vases_lidar_slice is None or self._sigwalls_lidar_slice is None:
+        if self._pillars_lidar_slice is None or self._sigwalls_lidar_slice is None:
             self._compute_lidar_slices()
         
         # Extract LiDAR readings for hazards, vases, and sigwalls
-        hazards_beams = obs[self._hazards_lidar_slice]  # shape (16,), values in [0,1]
-        vases_beams = obs[self._vases_lidar_slice]      # shape (16,), values in [0,1]
+        # hazards_beams = obs[self._hazards_lidar_slice]  # shape (16,), values in [0,1]
+        # vases_beams = obs[self._vases_lidar_slice]      # shape (16,), values in [0,1]
         sigwalls_beams = obs[self._sigwalls_lidar_slice]  # shape (16,), values in [0,1]
+        pillars_beams = obs[self._pillars_lidar_slice]  # shape (16,), values in [0,1]
 
         # Convert LiDAR closeness values to actual distances
         # lidar=0 (no object) -> dist=max_range
         # lidar=1 (very close) -> dist=0
-        hazards_dists = (1.0 - hazards_beams) * self.lidar_max_range
-        vases_dists = (1.0 - vases_beams) * self.lidar_max_range
+        # hazards_dists = (1.0 - hazards_beams) * self.lidar_max_range
+        # vases_dists = (1.0 - vases_beams) * self.lidar_max_range
+        pillars_dists = (1.0 - pillars_beams) * self.lidar_max_range
         sigwalls_dists = (1.0 - sigwalls_beams) * self.lidar_max_range
 
         # Find minimum distance to any safety-critical object (hazards, vases, or sigwalls)
-        all_safety_dists = np.concatenate([hazards_dists, vases_dists, sigwalls_dists])
+        all_safety_dists = np.concatenate([pillars_dists, sigwalls_dists])
         min_safety_distance = float(np.min(all_safety_dists))
         
         # Compute safety margin

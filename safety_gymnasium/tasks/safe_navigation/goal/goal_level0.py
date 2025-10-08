@@ -24,7 +24,7 @@ class GoalLevel0(BaseTask):
     def __init__(self, config) -> None:
         super().__init__(config=config)
 
-        # self.num_steps = 200
+        self.num_steps = 500
         
         self.placements_conf.extents = [-1, -1, 1, 1]
 
