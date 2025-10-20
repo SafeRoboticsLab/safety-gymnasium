@@ -118,7 +118,7 @@ class SafetyCircleMargin(gym.Wrapper):
         
         # Compute margin: distance to closest wall minus safety clearance
         if use_lidar:
-            assert pillar_dists is not None, raise RuntimeError("pillar_dists should be computed when use_lidar is True")
+            assert pillar_dists is not None, RuntimeError("pillar_dists should be computed when use_lidar is True")
             g = min(
                 float(min_distance_sigwall - self.safety_clearance),
                 float(np.min(pillar_dists) - self.safety_clearance)

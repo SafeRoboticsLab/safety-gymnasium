@@ -28,8 +28,22 @@ def run_random(env_name):
     # Use below to specify seed.
     # obs, _ = env.reset(seed=0)
 
+    print("\n" + "="*80)
+    print("OBSERVATION SPACE INFORMATION")
+    print("="*80)
     for k, v in env.unwrapped.obs_space_dict.items():
         print(f'Observation key: {k} \t Shape: {v.shape} \t Low: {v.low} \t High: {v.high}')
+
+    print("\n" + "="*80)
+    print("ACTION SPACE INFORMATION")
+    print("="*80)
+    print(f'Action space type: {type(env.action_space).__name__}')
+    print(f'Action space: {env.action_space}')
+    print(f'Action shape: {env.action_space.shape}')
+    print(f'Action dimension: {env.action_space.shape[0]}')
+    print(f'Action low (min): {env.action_space.low}')
+    print(f'Action high (max): {env.action_space.high}')
+    print("="*80 + "\n")
 
     terminated, truncated = False, False
     ep_ret, ep_cost = 0, 0
